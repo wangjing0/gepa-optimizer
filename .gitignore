@@ -307,5 +307,4 @@ local/
 scratch/
 playground/
 
-data/*
 logs/*

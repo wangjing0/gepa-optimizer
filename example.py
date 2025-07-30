@@ -74,7 +74,7 @@ async def main():
         
         logger.info("\n🎉 Both optimizations completed successfully!")
         logger.info("\n📊 SYNC RESULTS:")
-        logger.info("   Final training score: %.2f", final_result.avg_score)
+        logger.info("   Final training score: %.2f", results["train_score"])
         logger.info("   Final test score: %.2f", results['test_score'])
         logger.info("   Generalization gap: %.2f", results['generalization_gap'])
         logger.info("   Duration: %.1f seconds", sync_duration)
@@ -83,7 +83,7 @@ async def main():
         logger.info("%s", "-" * 20)
         
         logger.info("\n📊 ASYNC RESULTS:")
-        logger.info("   Final training score: %.2f", final_result_async.avg_score)
+        logger.info("   Final training score: %.2f", results_async["train_score"])
         logger.info("   Final test score: %.2f", results_async['test_score'])
         logger.info("   Generalization gap: %.2f", results_async['generalization_gap'])
         logger.info("   Duration: %.1f seconds", async_duration)
