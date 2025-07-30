@@ -31,7 +31,7 @@ async def main():
         return
     
     # Configuration
-    MODEL_NAME = "claude-sonnet-4-20250514"
+    MODEL_NAME = "claude-3-5-haiku-latest"
     SEED_PROMPT = "You are a helpful assistant."
     
     # Training data
@@ -61,6 +61,17 @@ async def main():
         )
         sync_duration = time.time() - start_time
 
+        logger.info("\n🎉 Both optimizations completed successfully!")
+        logger.info("\n📊 SYNC RESULTS:")
+        logger.info("   Final training score: %.2f", results["train_score"])
+        logger.info("   Final test score: %.2f", results['test_score'])
+        logger.info("   Generalization gap: %.2f", results['generalization_gap'])
+        logger.info("   Duration: %.1f seconds", sync_duration)
+        logger.info("\n🏆 Best prompt (from sync run):\n%s", '-' * 20)
+        logger.info("%s", final_result.prompt)
+        logger.info("%s", "-" * 20)
+
+        '''
         # Run async optimization
         logger.info("🚀 Running asynchronous optimization...")
         start_time = time.time()
@@ -72,15 +83,6 @@ async def main():
         )
         async_duration = time.time() - start_time
         
-        logger.info("\n🎉 Both optimizations completed successfully!")
-        logger.info("\n📊 SYNC RESULTS:")
-        logger.info("   Final training score: %.2f", results["train_score"])
-        logger.info("   Final test score: %.2f", results['test_score'])
-        logger.info("   Generalization gap: %.2f", results['generalization_gap'])
-        logger.info("   Duration: %.1f seconds", sync_duration)
-        logger.info("\n🏆 Best prompt (from sync run):\n%s", '-' * 20)
-        logger.info("%s", final_result.prompt)
-        logger.info("%s", "-" * 20)
         
         logger.info("\n📊 ASYNC RESULTS:")
         logger.info("   Final training score: %.2f", results_async["train_score"])
@@ -96,7 +98,7 @@ async def main():
             speedup = (sync_duration - async_duration) / sync_duration * 100
             logger.info(f"\n⚡ Performance: Async was {speedup:.1f}% faster than sync")
         
-        
+        '''
         
     except Exception as e:
         logger.error("\n❌ An error occurred during execution: %s", e)

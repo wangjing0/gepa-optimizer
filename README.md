@@ -40,7 +40,7 @@ cp .env.example .env
 ```bash
 git clone https://github.com/wangjing0/gepa-optimizer.git
 cd gepa-optimizer
-uv venv
+uv init
 uv sync
 ```
 ### 3. Run the example

@@ -1,5 +1,4 @@
 """GEPA: Genetic-Evolutionary Prompt Architecture
-
 Automated prompt optimization using LLM feedback loops with Claude API integration.
 """
 
@@ -15,4 +14,5 @@ __all__ = [
     "run_gepa_optimization_async",
     "Task",
     "Candidate",
+    "CacheEntry",
 ]
