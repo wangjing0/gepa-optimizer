@@ -18,7 +18,6 @@ cp .env.example .env
 
 ### 2. Installation
 
-
 ```bash
 git clone https://github.com/wangjing0/gepa-optimizer.git
 cd gepa-optimizer
@@ -37,26 +36,27 @@ uv run python example.py
 
 ```python
 from src.gepa_optimizer import run_gepa_optimization
-from datasets import load_dataset
+import json
 
-# Login using e.g. `huggingface-cli login` to access this dataset 'Columbia-NLP/PUPA'
-training_data = pandas.read_table('data/pupa_tnb.parquet')
+# Load training data (converted from PUPA dataset or your own format)
+training_data = json.load(open('data/pupa_training_data.json'))
 
 final_result, results = run_gepa_optimization(
     model_name="claude-sonnet-4-20250514",
-    seed_prompt="Answer the question.",
+    seed_prompt="You are a helpful assistant.",
     training_data=training_data,
-    budget=200
+    budget=200,
+    early_stopping_patience=3,
+    min_improvement=0.01
 )
 
-print(f"   Final training score: {results['train_score']:.2f}")
-print(f"   Final test score: {results['test_score']:.2f}")
-print(f"   Generalization gap: {results['generalization_gap']:.2f}")
-print(f"   Best prompt:\n{'-' * 20}")
+print(f"Final training score: {results['train_score']:.2f}")
+print(f"Final test score: {results['test_score']:.2f}")  
+print(f"Generalization gap: {results['generalization_gap']:.2f}")
+print(f"Best prompt:\n{'-' * 20}")
 print(final_result.prompt)
 print(f"{'-' * 20}")
 ```
-
 ## License
 
 MIT License
