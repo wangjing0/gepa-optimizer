@@ -1,8 +1,15 @@
-"""Data models for GEPA optimization."""
+"""Data models for GEPA optimizer."""
 
 from dataclasses import dataclass
 from typing import List, Optional
 
+
+@dataclass
+class CacheEntry:
+    """Cache entry for API responses."""
+    response: str
+    timestamp: float
+    usage_count: int = 0
 
 @dataclass
 class Task:

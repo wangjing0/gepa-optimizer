@@ -1,4 +1,4 @@
-"""Optimized core GEPA optimization logic."""
+"""Optimized core GEPA optimizer."""
 
 import os
 import random
@@ -14,20 +14,12 @@ from dataclasses import dataclass
 import anthropic
 from dotenv import load_dotenv
 
-from .models import Task, Candidate
+from .models import Task, Candidate, CacheEntry
 
 load_dotenv()
 
 # Configure logging
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class CacheEntry:
-    """Cache entry for API responses."""
-    response: str
-    timestamp: float
-    usage_count: int = 0
 
 
 class GEPAOptimizer:

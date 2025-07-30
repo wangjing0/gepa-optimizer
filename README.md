@@ -1,9 +1,9 @@
 # GEPA: Genetic-Pareto Evolutionary Algorithm
+Implementation of the GEPA optimizer.
 
+Reference:
 [GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning](https://arxiv.org/abs/2507.19457)
 
-
-## Quick Start
 
 ### 1. Set up your API key
 
