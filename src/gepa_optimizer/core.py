@@ -799,6 +799,236 @@ TASK: Analyze the feedback and create an improved prompt that addresses failures
         
         return self.best_candidate, results
     
+    async def run_optimization_async(
+        self, 
+        seed_prompt: str, 
+        training_data: List[Task], 
+        budget: int,
+        test_split: float = 0.5,
+        random_seed: int = 42,
+        early_stopping_patience: int = 3,
+        min_improvement: float = 0.01
+    ) -> Tuple[Candidate, Dict[str, Any]]:
+        """Run the async GEPA optimization process with train/test split.
+        
+        Args:
+            seed_prompt: Initial prompt to optimize
+            training_data: List of training tasks
+            budget: Maximum number of model rollouts
+            test_split: Fraction of data to use for testing (default: 0.5)
+            random_seed: Random seed for reproducible splits (default: 42)
+            early_stopping_patience: Stop if no improvement for N iterations (default: 3)
+            min_improvement: Minimum improvement to reset patience counter (default: 0.01)
+            
+        Returns:
+            Tuple of (best_candidate, results_dict) where results_dict contains
+            train scores, test scores, and performance metrics
+        """
+        self._budget = budget  # Store budget for batch evaluation
+        self.log_message("Starting Async GEPA Process...")
+        
+        # Split data into train and test sets
+        random.seed(random_seed)  # For reproducible splits
+        shuffled_data = training_data.copy()
+        random.shuffle(shuffled_data)
+        
+        split_idx = int(len(shuffled_data) * (1 - test_split))
+        train_data = shuffled_data[:split_idx]
+        test_data = shuffled_data[split_idx:]
+        
+        self.log_message(f"Data split: {len(train_data)} train, {len(test_data)} test tasks")
+        self.log_message(f"Train/Test split ratio: {len(train_data)/(len(train_data)+len(test_data)):.1%}/{len(test_data)/(len(train_data)+len(test_data)):.1%}")
+        
+        # Test model connection
+        self.log_message(f"Testing connection to model: {self.model_name}")
+        connection_ok, test_result = self.test_model_connection()
+        if not connection_ok:
+            self.log_message(f"Model connection failed: {test_result}", 'fail')
+            raise Exception(f"Cannot connect to model '{self.model_name}': {test_result}")
+        self.log_message("Model connection successful!", 'success')
+        
+        # Initialize with seed prompt evaluation on training set
+        logger.info("\\n" + "="*50)
+        self.log_message("Phase 1: Evaluating Initial Seed Prompt on Training Set")
+        
+        initial_candidate = Candidate(
+            id=0,
+            prompt=seed_prompt,
+            parent_id=None,
+            scores=[0.0] * len(train_data),
+            avg_score=0.0
+        )
+        
+        # Use async batch evaluation for initial candidate on training data
+        scores, avg_score = await self.batch_evaluate_candidate_async(initial_candidate, train_data)
+        initial_candidate.scores = scores
+        initial_candidate.avg_score = avg_score
+        
+        self.candidate_pool.append(initial_candidate)
+        self.best_candidate = initial_candidate
+        
+        self.log_message(f"Seed prompt initial score: {initial_candidate.avg_score:.2f}", 'best')
+        logger.info("Current Best Prompt:\\n---\\n%s\\n---", self.best_candidate.prompt)
+        
+        # Main optimization loop with early stopping
+        logger.info("\\n" + "="*50)
+        self.log_message(f"Phase 2: Starting Async Optimization Loop (Budget: {budget} rollouts)")
+        self.log_message(f"Early stopping: patience={early_stopping_patience}, min_improvement={min_improvement}")
+        
+        iteration_count = 0
+        no_improvement_count = 0
+        best_score_history = [initial_candidate.avg_score]
+        
+        while self.rollout_count < budget:
+            iteration_start_rollouts = self.rollout_count
+            iteration_count += 1
+            self.log_message(f"--- Iteration {iteration_count} (Rollouts: {self.rollout_count}/{budget}) ---")
+            
+            # Select parent candidate for mutation
+            parent_candidate = self.select_candidate_for_mutation(len(train_data))
+            self.log_message(f"Selected candidate #{parent_candidate.id} (Score: {parent_candidate.avg_score:.2f}) for mutation.")
+            
+            # Choose random task for reflection from training data
+            task_index = random.randint(0, len(train_data) - 1)
+            reflection_task = train_data[task_index]
+            self.log_message(f"Performing reflective mutation using training task {task_index + 1}...")
+            
+            try:
+                # Generate output for reflection using async method
+                rollout_output = await self.run_claude_rollout_async(parent_candidate.prompt, reflection_task.input)
+                self.rollout_count += 1
+                eval_result = self.evaluate_output(rollout_output, reflection_task)
+                
+                # Generate new prompt via async reflection
+                new_prompt = await self.reflect_and_mutate_prompt_async(parent_candidate.prompt, [{
+                    "input": reflection_task.input,
+                    "output": rollout_output,
+                    "feedback": eval_result["feedback"]
+                }])
+                
+                # Create new candidate
+                new_candidate = Candidate(
+                    id=len(self.candidate_pool),
+                    prompt=new_prompt,
+                    parent_id=parent_candidate.id,
+                    scores=[0.0] * len(train_data),
+                    avg_score=0.0
+                )
+                self.log_message(f"Generated new candidate prompt #{new_candidate.id}.")
+                
+                # Smart budget allocation for evaluation
+                remaining_budget = budget - self.rollout_count
+                min_required = len(train_data)
+                
+                if remaining_budget >= min_required:
+                    # Full evaluation when budget allows
+                    scores, avg_score = await self.batch_evaluate_candidate_async(new_candidate, train_data)
+                    new_candidate.scores = scores
+                    new_candidate.avg_score = avg_score
+                elif remaining_budget >= min_required // 2:
+                    # Partial evaluation on subset when budget is limited
+                    subset_size = min(remaining_budget, len(train_data) // 2)
+                    train_subset = train_data[:subset_size]
+                    self.log_message(f"Limited budget: evaluating on subset of {subset_size} tasks", 'fail')
+                    scores, avg_score = await self.batch_evaluate_candidate_async(new_candidate, train_subset)
+                    # Scale scores to full dataset
+                    new_candidate.scores = scores + [0.0] * (len(train_data) - len(scores))
+                    new_candidate.avg_score = avg_score
+                else:
+                    self.log_message("Insufficient budget for meaningful evaluation.", 'fail')
+                    break
+                
+                # Add to pool if improved
+                if new_candidate.avg_score > parent_candidate.avg_score:
+                    self.log_message(f"New candidate #{new_candidate.id} improved! Score: {new_candidate.avg_score:.2f} > {parent_candidate.avg_score:.2f}", 'success')
+                    self.candidate_pool.append(new_candidate)
+                    
+                    # Check if this is a new best candidate
+                    if new_candidate.avg_score > self.best_candidate.avg_score:
+                        improvement = new_candidate.avg_score - self.best_candidate.avg_score
+                        if improvement >= min_improvement:
+                            self.best_candidate = new_candidate
+                            no_improvement_count = 0  # Reset counter on significant improvement
+                            self.log_message("NEW BEST PROMPT FOUND!", 'best')
+                            self.log_message(f"Improvement: {improvement:.3f} (≥ {min_improvement})", 'success')
+                            logger.info("Current Best Prompt:\\n---\\n%s\\n---", self.best_candidate.prompt)
+                        else:
+                            no_improvement_count += 1
+                            self.log_message(f"Minor improvement: {improvement:.3f} (< {min_improvement})", 'fail')
+                    else:
+                        no_improvement_count += 1
+                else:
+                    self.log_message(f"New candidate #{new_candidate.id} did not improve. Score: {new_candidate.avg_score:.2f}. Discarding.", 'fail')
+                    no_improvement_count += 1
+                
+                # Track score history
+                best_score_history.append(self.best_candidate.avg_score)
+                
+                # Early stopping check
+                if no_improvement_count >= early_stopping_patience:
+                    self.log_message(f"Early stopping triggered! No significant improvement for {no_improvement_count} iterations.", 'success')
+                    break
+                    
+            except Exception as e:
+                self.log_message(f"Error in optimization iteration: {str(e)}", 'fail')
+                # Ensure rollout is counted even if iteration fails
+                if iteration_start_rollouts == self.rollout_count:
+                    self.rollout_count += 1
+        
+        # Phase 3: Evaluate best candidate on test set
+        logger.info("\\n" + "="*50)
+        self.log_message("Phase 3: Evaluating Best Candidate on Test Set")
+        
+        test_scores, test_avg_score = await self.batch_evaluate_candidate_async(self.best_candidate, test_data)
+        
+        self.log_message(f"Training set score: {self.best_candidate.avg_score:.2f}")
+        self.log_message(f"Test set score: {test_avg_score:.2f}")
+        
+        # Calculate generalization gap
+        generalization_gap = self.best_candidate.avg_score - test_avg_score
+        self.log_message(f"Generalization gap: {generalization_gap:.2f}")
+        
+        if generalization_gap > 0.1:
+            self.log_message("Warning: Large generalization gap detected. Model may be overfitting.", 'fail')
+        elif generalization_gap < -0.05:
+            self.log_message("Interesting: Test score exceeds training score.", 'success')
+        else:
+            self.log_message("Good generalization performance.", 'success')
+        
+        logger.info("\\nFinal Best Prompt:")
+        logger.info("---\\n%s\\n---", self.best_candidate.prompt)
+        
+        # Compile results
+        results = {
+            "best_candidate": self.best_candidate,
+            "train_score": self.best_candidate.avg_score,
+            "test_score": test_avg_score,
+            "test_scores": test_scores,
+            "generalization_gap": generalization_gap,
+            "train_data_size": len(train_data),
+            "test_data_size": len(test_data),
+            "total_iterations": iteration_count,
+            "early_stopped": no_improvement_count >= early_stopping_patience,
+            "no_improvement_count": no_improvement_count,
+            "score_history": best_score_history,
+            "performance_stats": self.get_performance_stats()
+        }
+        
+        # Print performance statistics
+        stats = results["performance_stats"]
+        logger.info("\\nPerformance Statistics:")
+        logger.info("  Cache hit rate: %s", stats['cache_hit_rate'])
+        logger.info("  Average API time: %s", stats['avg_api_time'])
+        logger.info("  Total iterations: %d", iteration_count)
+        logger.info("  Final cache size: %d", stats['cache_size'])
+        logger.info("  Train/Test sizes: %d/%d", len(train_data), len(test_data))
+        logger.info("="*50)
+        
+        # Cleanup
+        self.executor.shutdown(wait=True)
+        
+        return self.best_candidate, results
+    
     async def reflect_and_mutate_prompt_async(self, current_prompt: str, examples: List[Dict]) -> str:
         """Async version of reflect_and_mutate_prompt for better performance."""
         # Create optimized cache key using hash for better performance
@@ -1037,19 +1267,14 @@ async def run_gepa_optimization_async(
         max_workers=max_workers
     )
     
-    # For now, run the sync version until we implement full async optimization
-    # This provides the async interface while maintaining compatibility
-    def run_sync():
-        return optimizer.run_optimization(
-            seed_prompt=seed_prompt, 
-            training_data=tasks, 
-            budget=budget,
-            test_split=test_split,
-            random_seed=random_seed,
-            early_stopping_patience=early_stopping_patience,
-            min_improvement=min_improvement
-        )
-    
-    # Run in thread pool to avoid blocking
-    return await asyncio.get_event_loop().run_in_executor(None, run_sync)
+    # Call the new async optimization method
+    return await optimizer.run_optimization_async(
+        seed_prompt=seed_prompt, 
+        training_data=tasks, 
+        budget=budget,
+        test_split=test_split,
+        random_seed=random_seed,
+        early_stopping_patience=early_stopping_patience,
+        min_improvement=min_improvement
+    )
 
