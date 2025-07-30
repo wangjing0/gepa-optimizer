@@ -1,6 +1,6 @@
 # GEPA: Genetic-Pareto Evolutionary Algorithm
-https://arxiv.org/abs/2507.19457
-GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning
+
+[GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning](https://arxiv.org/abs/2507.19457)
 
 
 ## Quick Start
@@ -14,18 +14,16 @@ export ANTHROPIC_API_KEY="your-anthropic-api-key"
 
 ### 2. Installation
 
-Using uv (recommended):
 
 ```bash
 git clone https://github.com/wangjing0/gepa-optimizer.git
 cd gepa-optimizer
-uv venv
-uv sync
+pip install -e .
 ```
 ### 3. Run the example
 
 ```bash
-uv run python example.py
+python example.py
 ```
 
 ## Usage
