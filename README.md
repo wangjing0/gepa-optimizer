@@ -12,13 +12,12 @@ export ANTHROPIC_API_KEY="your-anthropic-api-key"
 ```
 
 
-
 ### 2. Installation
 
 Using uv (recommended):
 
 ```bash
-git clone https://github.com/mnemosyne/gepa-optimizer.git
+git clone https://github.com/wangjing0/gepa-optimizer.git
 cd gepa-optimizer
 uv venv
 uv sync

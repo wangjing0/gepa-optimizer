@@ -11,7 +11,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
 ]
 authors = [
-    {name = "GEPA Team", email = "gepa@example.com"}
+    {name = "Jing Wang", email = "jingwang.physics@gmail.com"}
 ]
 license = {text = "MIT"}
 keywords = ["llm", "prompt-engineering", "optimization", "claude", "genetic-algorithm"]
