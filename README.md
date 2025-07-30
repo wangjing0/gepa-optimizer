@@ -3,15 +3,6 @@ https://arxiv.org/abs/2507.19457
 GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning
 
 
-## Features
-
-- Genetic Evolution: Automatically evolves prompts using genetic algorithm principles
-- Claude Integration: Uses Anthropic's Claude models for both target and reflection tasks
-- Performance Tracking: Tracks and displays best-performing prompts during optimization
-- Pareto Optimization: Selects candidates based on multi-objective optimization
-- Reflective Mutation: Uses powerful LLM reflection to generate improved prompts
-- Customizable Evaluation: Easy-to-customize evaluation functions for different tasks
-
 ## Quick Start
 
 ### 1. Set up your API key
@@ -79,39 +70,6 @@ result = run_gepa_optimization(
 print(f"Best prompt: {result.prompt}")
 print(f"Score: {result.avg_score:.2f}")
 ```
-
-### Command Line
-
-```bash
-uv run gepa --seed-prompt "Your initial prompt" --training-data data.json --budget 20 --output result.json
-```
-
-## Training Data Format
-
-Training data should be a JSON file with this structure:
-
-```json
-[
-  {
-    "input": "Text to be processed by the prompt",
-    "expected_keywords": ["keyword1", "keyword2", "keyword3"]
-  }
-]
-```
-
-## Development
-
-```bash
-# Install development dependencies
-uv sync --dev
-
-# Run the example
-uv run python example.py
-
-# Run with CLI
-uv run gepa --help
-```
-
 
 ## License
 

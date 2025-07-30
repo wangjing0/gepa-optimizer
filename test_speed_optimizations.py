@@ -9,10 +9,16 @@ import asyncio
 from src.gepa_optimizer import run_gepa_optimization, run_gepa_optimization_async
 
 # Configure logging
+import os
+os.makedirs('logs', exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('logs/speed_test.log')
+    ]
 )
 
 # Turn off HTTP request logging from httpx

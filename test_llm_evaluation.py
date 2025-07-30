@@ -7,10 +7,16 @@ from src.gepa_optimizer.core import GEPAOptimizer
 from src.gepa_optimizer.models import Task
 
 # Configure logging to show debug info
+import os
+os.makedirs('logs', exist_ok=True)
+
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('logs/llm_evaluation_test.log')
+    ]
 )
 
 # Turn off HTTP request logging from httpx
