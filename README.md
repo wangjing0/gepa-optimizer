@@ -11,47 +11,27 @@ GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning
 export ANTHROPIC_API_KEY="your-anthropic-api-key"
 ```
 
-### 2. Install dependencies
-
-```bash
-uv sync
-```
-
-### 3. Run the example
-
-```bash
-uv run python example.py
-```
 
 
-## Installation
+### 2. Installation
 
 Using uv (recommended):
 
 ```bash
 git clone https://github.com/mnemosyne/gepa-optimizer.git
 cd gepa-optimizer
+uv venv
 uv sync
 ```
-
-## Configuration
-
-Set your Anthropic API key:
+### 3. Run the example
 
 ```bash
-export ANTHROPIC_API_KEY="your-anthropic-api-key"
-```
-
-Or create a .env file:
-
-```bash
-cp .env.example .env
-# Edit .env and add your API key
+uv run python example.py
 ```
 
 ## Usage
 
-### Python API
+### Python API Example
 
 ```python
 from src.gepa_optimizer import run_gepa_optimization
@@ -62,7 +42,7 @@ training_data = pandas.read_table('data/pupa_tnb.parquet')
 
 result = run_gepa_optimization(
     model_name="claude-sonnet-4-20250514",
-    seed_prompt="Summarize the following text.",
+    seed_prompt="Answer the question.",
     training_data=training_data,
     budget=15
 )
