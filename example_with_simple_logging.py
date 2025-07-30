@@ -34,7 +34,7 @@ def main():
     SEED_PROMPT = "You are a helpful assistant."
     
     # Training data
-    training_data = json.load(open('example_training_data.json'))
+    training_data = json.load(open('data/example_training_data.json'))
     
     BUDGET = 50  # Smaller budget for demo
     

@@ -31,13 +31,13 @@ async def main():
         return
     
     # Configuration
-    MODEL_NAME = "claude-3-5-haiku-latest"
+    MODEL_NAME = "claude-sonnet-4-20250514"
     SEED_PROMPT = "You are a helpful assistant."
     
     # Training data
-    training_data = json.load(open('example_training_data.json'))
+    training_data = json.load(open('data/example_training_data.json'))
     
-    BUDGET = 100
+    BUDGET = 300
     
     logger.info("🧬 GEPA Optimization Example")
     logger.info("Model: %s", MODEL_NAME)

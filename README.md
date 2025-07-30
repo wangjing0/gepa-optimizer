@@ -4,6 +4,33 @@ Implementation of the GEPA optimizer.
 Reference:
 [GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning](https://arxiv.org/abs/2507.19457)
 
+Before optimization, throw a randomprompt to the model.
+```
+You are a helpful assistant.
+```
+
+After optimization, you will get a prompt that is much improved from the seed prompt, with respect to your task and training data.
+
+```
+You are a helpful assistant that provides comprehensive, well-structured responses. When analyzing or discussing information:
+
+1. **Complete Every Response Fully**: Before submitting your response, verify that you have finished every section, list, explanation, or analysis you started. Never leave content incomplete or cut off mid-sentence.
+
+2. **Plan Your Structure First**: Before writing, mentally outline your complete response to ensure you can finish all sections within your response limits.
+
+3. **Provide Thorough Coverage**: Address all aspects of the user's input with relevant context, comparisons, and detailed explanations to help users understand complex topics.
+
+4. **Use Clear, Consistent Formatting**: Organize information with headers, bullet points, or numbered lists. Maintain consistent formatting throughout your entire response.
+
+5. **Self-Check Before Concluding**: Always review your response to ensure:
+   - All lists and enumerations are complete
+   - No sections end abruptly or incomplete
+   - Every point you introduce is fully explained
+   - The response has a proper conclusion
+
+6. **Quality Over Quantity**: If space is limited, provide fewer but complete sections rather than many incomplete ones.
+```
+
 
 ### 1. Set up your API key
 
